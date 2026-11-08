@@ -1,16 +1,15 @@
 # LMLM Build Fabric
 
-A self-contained build orchestration layer for LMLM native components. This first
-implementation establishes a tested CPU baseline and explicit, opt-in accelerator
-profiles. It does not modify the repository's existing root files.
+A self-contained build orchestration layer for native LMLM components. Version 0.2 adds
+runtime CPU feature reporting and executable accelerator device/kernel probes.
 
 ## Requirements
 
 - CMake 3.24+
 - Ninja 1.10+
 - C++20 compiler
-- Bash 4+ for the command-line driver
-- Optional: CUDA Toolkit, ROCm/HIP toolchain, or macOS/Xcode for Metal
+- Bash 4+ for the CLI
+- Optional accelerator SDKs: NVIDIA CUDA Toolkit, AMD ROCm/HIP, or macOS/Xcode
 
 ## Quick start
 
@@ -19,49 +18,47 @@ profiles. It does not modify the repository's existing root files.
 ./lmlm-build/scripts/lmlm-build.sh configure --profile cpu
 ./lmlm-build/scripts/lmlm-build.sh build --profile cpu
 ./lmlm-build/scripts/lmlm-build.sh test --profile cpu
+./lmlm-build/scripts/lmlm-build.sh capabilities --profile cpu
 ./lmlm-build/scripts/lmlm-build.sh package --profile cpu
 ```
 
 Build directories are isolated by profile under `lmlm-build/_build/`.
 
-## Profiles
+## Backend profiles
 
-| Profile | Toolchain | Notes |
+| Profile | Probe | Requirements |
 |---|---|---|
-| cpu | Host C++ compiler | Portable baseline; always available with CMake/compiler |
-| cuda | NVIDIA CUDA Toolkit | Requires nvcc and a supported host compiler |
-| rocm | AMD HIP/ROCm | Requires ROCm compiler and CMake HIP support |
-| metal | Apple Clang + Metal framework | macOS only; never configured in Linux CI |
+| cpu | Runtime architecture and SIMD feature detection | Host C++ compiler |
+| cuda | Enumerates CUDA devices, launches a kernel, verifies result | CUDA Toolkit, supported host compiler, NVIDIA device for runtime pass |
+| rocm | Enumerates HIP devices, launches a kernel, verifies result | ROCm/HIP toolchain and supported AMD device |
+| metal | Enumerates Metal devices through Metal framework | macOS and Xcode/Apple Clang |
 
-Accelerator profiles are compile-time selections, not hardware detection. A successful
-compile does not prove runtime device access or kernel correctness on physical hardware.
-CUDA, HIP, and Metal runtime integration must be validated on their respective devices.
+Configure one accelerator profile per build tree. A successful accelerator compile proves
+toolchain integration only. Device enumeration and kernel execution require matching
+hardware and runtime drivers. A machine without an accelerator reports unavailable rather
+than pretending the backend passed.
 
 ## CLI
 
 ```text
-lmlm-build.sh <doctor|configure|build|test|package|clean>
+lmlm-build.sh <doctor|capabilities|configure|build|test|package|clean>
   [--profile cpu|cuda|rocm|metal]
-  [--jobs N]
-  [--build-dir PATH]
-  [--artifacts PATH]
+  [--jobs N] [--build-dir PATH] [--artifacts PATH]
   [-- <additional CMake configure arguments>]
 ```
 
-## Design and safety
+## Architecture boundary
 
-- CPU is the default and remains independent of accelerator SDKs.
-- Each accelerator is configured in a separate build tree.
-- No privileged container, Docker socket, or implicit GPU access is used.
-- Build and artifact directories are explicit; clean refuses paths outside this module's
-  `_build` directory.
-- CI runs the CPU profile only. Hardware-specific jobs should be added only on verified
-  self-hosted runners with the corresponding SDK and device.
-- No secrets are passed to CMake or build subprocesses by this driver.
+This repository owns the build fabric, capability probes, and backend build targets.
+It does not vendor or automatically link LMLM runtime source. Runtime integration requires
+an explicit public target contract (target names, include directories, compile features,
+and backend registration API) supplied by the runtime implementation. Until then, this
+module validates the toolchain and device layer independently.
 
-## Integration boundary
+## Security and reproducibility
 
-This module currently builds a small probe library to validate the build fabric itself.
-It is not yet wired to LMLM runtime targets. Integrating runtime source requires an
-explicit target contract from the runtime repository; no external project source is
-vendored or linked here.
+- CPU is the default; accelerator SDKs are opt-in.
+- Each accelerator uses a separate build tree.
+- No privileged container or implicit GPU access is used.
+- The clean command refuses paths outside this module's `_build` directory.
+- CI validates CPU only; hardware-specific jobs require verified hardware runners.
