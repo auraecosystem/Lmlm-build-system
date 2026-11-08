@@ -15,7 +15,7 @@ die() { printf '[lmlm-build] ERROR: %s\n' "$*" >&2; exit 2; }
 need() { command -v "$1" >/dev/null 2>&1 || die "Missing required tool: $1"; }
 usage() {
   cat <<'USAGE'
-Usage: lmlm-build.sh <doctor|configure|build|test|package|clean>
+Usage: lmlm-build.sh <doctor|capabilities|configure|build|test|package|clean>
   [--profile cpu|cuda|rocm|metal] [--jobs N]
   [--build-dir PATH] [--artifacts PATH] [-- CMake arguments]
 USAGE
@@ -62,7 +62,15 @@ case "$COMMAND" in
     for tool in cmake ninja c++; do
       if command -v "$tool" >/dev/null 2>&1; then log "$tool: available"; else log "$tool: missing"; fi
     done
-    case "$(uname -s)" in Darwin) log "Host: macOS (Metal SDK may be available)" ;; Linux) log "Host: Linux" ;; *) log "Host: $(uname -s)" ;; esac
+    for tool in nvcc hipcc xcrun; do
+      if command -v "$tool" >/dev/null 2>&1; then log "$tool: available"; else log "$tool: not found"; fi
+    done
+    log "Host: $(uname -s) / $(uname -m)"
+    ;;
+  capabilities)
+    ensure_configured
+    cmake --build "$BUILD_DIR" --target lmlm_cpu_capabilities --parallel "$JOBS"
+    "$BUILD_DIR/lmlm_cpu_capabilities"
     ;;
   configure) configure ;;
   build) ensure_configured; cmake --build "$BUILD_DIR" --parallel "$JOBS" ;;
