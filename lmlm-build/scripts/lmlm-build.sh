@@ -23,6 +23,7 @@ USAGE
 
 COMMAND="${1:-}"
 [[ -n "$COMMAND" ]] || { usage; exit 2; }
+if [[ "$COMMAND" == "-h" || "$COMMAND" == "--help" ]]; then usage; exit 0; fi
 shift
 while (($#)); do
   case "$1" in
