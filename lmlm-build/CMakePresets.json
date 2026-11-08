@@ -1,22 +1,53 @@
 {
-  "version": 6,
-  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "version": 5,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
   "configurePresets": [
-    { "name": "cpu", "generator": "Ninja", "binaryDir": "${sourceDir}/_build/cpu", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "BUILD_TESTING": "ON" } },
-    { "name": "cuda", "inherits": "cpu", "binaryDir": "${sourceDir}/_build/cuda", "cacheVariables": { "LMLM_ENABLE_CUDA": "ON" } },
-    { "name": "rocm", "inherits": "cpu", "binaryDir": "${sourceDir}/_build/rocm", "cacheVariables": { "LMLM_ENABLE_ROCM": "ON" } },
-    { "name": "metal", "inherits": "cpu", "binaryDir": "${sourceDir}/_build/metal", "cacheVariables": { "LMLM_ENABLE_METAL": "ON" } }
-  ],
-  "buildPresets": [
-    { "name": "cpu", "configurePreset": "cpu" },
-    { "name": "cuda", "configurePreset": "cuda" },
-    { "name": "rocm", "configurePreset": "rocm" },
-    { "name": "metal", "configurePreset": "metal" }
-  ],
-  "testPresets": [
-    { "name": "cpu", "configurePreset": "cpu", "output": { "outputOnFailure": true } },
-    { "name": "cuda", "configurePreset": "cuda", "output": { "outputOnFailure": true } },
-    { "name": "rocm", "configurePreset": "rocm", "output": { "outputOnFailure": true } },
-    { "name": "metal", "configurePreset": "metal", "output": { "outputOnFailure": true } }
+    {
+      "name": "lmlm-cpu",
+      "displayName": "LMLM CPU",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build/lmlm-cpu",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "lmlm-cuda",
+      "displayName": "LMLM CUDA",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build/lmlm-cuda",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON",
+        "LMLM_ENABLE_CUDA": "ON"
+      }
+    },
+    {
+      "name": "lmlm-rocm",
+      "displayName": "LMLM ROCm / HIP",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build/lmlm-rocm",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON",
+        "LMLM_ENABLE_ROCM": "ON"
+      }
+    },
+    {
+      "name": "lmlm-metal",
+      "displayName": "LMLM Apple Metal",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/_build/lmlm-metal",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON",
+        "LMLM_ENABLE_METAL": "ON"
+      }
+    }
   ]
 }
