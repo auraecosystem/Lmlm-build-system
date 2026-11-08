@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-CLI="$ROOT/scripts/lmlm-build.sh"
+MODULE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+CLI="$MODULE_ROOT/scripts/lmlm-build.sh"
 "$CLI" --help >/dev/null
 if "$CLI" nonsense >/dev/null 2>&1; then
   echo "invalid command unexpectedly succeeded" >&2
