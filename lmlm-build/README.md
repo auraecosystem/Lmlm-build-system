@@ -1,20 +1,14 @@
 # LMLM Build Fabric
 
-A self-contained build orchestration layer for native LMLM components. Version 0.2 adds
-runtime CPU feature reporting and executable accelerator device/kernel probes.
-
-## Requirements
-
-- CMake 3.24+
-- Ninja 1.10+
-- C++20 compiler
-- Bash 4+ for the CLI
-- Optional accelerator SDKs: NVIDIA CUDA Toolkit, AMD ROCm/HIP, or macOS/Xcode
+A self-contained native build orchestrator for LMLM components. Version 0.3 adds compiler
+selection, cross-compilation toolchain-file support, machine-readable toolchain diagnostics,
+and CMake presets for the supported backend profiles.
 
 ## Quick start
 
 ```bash
 ./lmlm-build/scripts/lmlm-build.sh doctor
+./lmlm-build/scripts/lmlm-build.sh doctor --json
 ./lmlm-build/scripts/lmlm-build.sh configure --profile cpu
 ./lmlm-build/scripts/lmlm-build.sh build --profile cpu
 ./lmlm-build/scripts/lmlm-build.sh test --profile cpu
@@ -22,43 +16,61 @@ runtime CPU feature reporting and executable accelerator device/kernel probes.
 ./lmlm-build/scripts/lmlm-build.sh package --profile cpu
 ```
 
-Build directories are isolated by profile under `lmlm-build/_build/`.
+Build trees are isolated by backend profile under `lmlm-build/_build/`.
+
+## Compiler and cross-compilation
+
+Select a compiler explicitly:
+
+```bash
+./lmlm-build/scripts/lmlm-build.sh configure --profile cpu --compiler clang++
+```
+
+Pass a CMake toolchain file for cross-compilation (for example, an SDK or target sysroot
+provided by your platform toolchain):
+
+```bash
+./lmlm-build/scripts/lmlm-build.sh configure --profile cpu \
+  --toolchain-file /absolute/path/to/target-toolchain.cmake
+```
+
+The toolchain file is intentionally supplied by the target platform owner. This repository
+does not guess target triples, sysroots, SDK paths, or deployable hardware targets.
+Use `-- <CMake arguments>` for additional CMake configuration values.
+
+Equivalent IDE/GUI presets are provided in `lmlm-build/CMakePresets.json`:
+`lmlm-cpu`, `lmlm-cuda`, `lmlm-rocm`, and `lmlm-metal`.
 
 ## Backend profiles
 
 | Profile | Probe | Requirements |
 |---|---|---|
-| cpu | Runtime architecture and SIMD feature detection | Host C++ compiler |
-| cuda | Enumerates CUDA devices, launches a kernel, verifies result | CUDA Toolkit, supported host compiler, NVIDIA device for runtime pass |
-| rocm | Enumerates HIP devices, launches a kernel, verifies result | ROCm/HIP toolchain and supported AMD device |
-| metal | Enumerates Metal devices through Metal framework | macOS and Xcode/Apple Clang |
+| cpu | Architecture and SIMD capability report | C++20 compiler |
+| cuda | Device enumeration and verified kernel | CUDA Toolkit and NVIDIA device for runtime pass |
+| rocm | HIP device enumeration and verified kernel | ROCm/HIP toolchain and AMD device |
+| metal | Metal device enumeration | macOS and Xcode/Apple Clang |
 
-Configure one accelerator profile per build tree. A successful accelerator compile proves
-toolchain integration only. Device enumeration and kernel execution require matching
-hardware and runtime drivers. A machine without an accelerator reports unavailable rather
-than pretending the backend passed.
+Accelerator profiles are opt-in and isolated. A successful compile does not prove device
+execution. CPU CI does not validate physical CUDA, ROCm, or Metal hardware.
 
-## CLI
+## Toolchain diagnostics
 
-```text
-lmlm-build.sh <doctor|capabilities|configure|build|test|package|clean>
-  [--profile cpu|cuda|rocm|metal]
-  [--jobs N] [--build-dir PATH] [--artifacts PATH]
-  [-- <additional CMake configure arguments>]
-```
+`doctor` reports host architecture and availability of CMake, Ninja, LLVM/Clang,
+the host C++ compiler, Python, Git, and accelerator SDK entry points. Use `--json` for
+automation and environment capture. Missing optional tools are reported, not treated as
+fatal for the CPU baseline.
 
-## Architecture boundary
+## Runtime boundary
 
-This repository owns the build fabric, capability probes, and backend build targets.
-It does not vendor or automatically link LMLM runtime source. Runtime integration requires
-an explicit public target contract (target names, include directories, compile features,
-and backend registration API) supplied by the runtime implementation. Until then, this
-module validates the toolchain and device layer independently.
+The build fabric owns toolchain configuration, native compilation, backend probes, tests,
+and package staging. The LMLM runtime owns model execution, scheduling, memory management,
+device policy, and kernel dispatch. Runtime linkage remains opt-in and requires an explicit
+target/header/ABI/backend-registration contract; no source is silently cloned or vendored.
 
-## Security and reproducibility
+## Safety and reproducibility
 
-- CPU is the default; accelerator SDKs are opt-in.
-- Each accelerator uses a separate build tree.
-- No privileged container or implicit GPU access is used.
+- CPU remains the default and does not require accelerator SDKs.
+- Each backend uses a separate build directory.
+- Cross-compilation requires an explicit, existing toolchain file.
 - The clean command refuses paths outside this module's `_build` directory.
-- CI validates CPU only; hardware-specific jobs require verified hardware runners.
+- Hardware validation is reported separately from compile/configure validation.
